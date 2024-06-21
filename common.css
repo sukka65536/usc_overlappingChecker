@@ -1,0 +1,14 @@
+.flex { display: flex; }
+.hide { display: none; }
+
+.t-center { text-align: center; }
+.t-left { text-align: left; text-indent: 1em; }
+.v-center { line-height: 50px; }
+.vt-center { text-align: center; line-height: 50px; }
+
+.h-25x { height: 25px; }
+.w-5c { width: 5%; }
+.w-30c { width: 30%; }
+.w-47p5c { width: 47.5%; }
+.w-70c { width: 70%; }
+.w-100c { width: 100%; }

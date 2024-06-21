@@ -1,0 +1,99 @@
+<!--2024-06-19-->
+<!--v0.0.0-->
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <title>usc重なりチェッカー</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="main.css">
+    <script src="jquery-3.7.1.min.js"></script>
+    <script src="main.js"></script>
+</head>
+
+<body>
+    <!--非表示-->
+    <input type="file" id="file-input-hide" class="hide" accept=".usc" value="1">
+    <input type="checkbox" id="popup" class="hide">
+    <!--非表示-->
+
+    <h1 class="t-center">usc重なりチェッカー</h1>
+    <div id="main">
+        <div class="main-item flex">
+            <div id="file-input" class="vt-center w-30c btn">uscを選択</div>
+            <div id="file-info" class="v-center t-left w-70c">何も選択されていません</div>
+        </div>
+        <div id="file-input-error" class="input-error h-25x"></div>
+
+        <div class="main-item flex">
+            <label for="popup" id="config-btn" class="vt-center w-47p5c btn">設定</label>
+            <div class="w-5c"></div>
+            <div id="check-btn" class="vt-center w-47p5c">チェック実行</div>
+        </div>
+        <div class="h-25x"></div>
+
+        <div id="checker-result">
+            <div id="result-text">ここに結果が表示されます。</div>
+            <table id="result-table"></table>
+        </div>
+
+        <!--
+        <div class="h-25x"></div>
+        <div id="download" class="main-item vt-center w-100c">
+            uscをダウンロード<i class="bi bi-download"></i>
+        </div>
+        -->
+    </div>
+
+    <div id="overlay">
+        <label for="popup" id="bg-gray"></label>
+        <div id="window">
+            <label for="popup" id="close-btn" class="btn">
+                <span></span>
+            </label>
+
+            <h2 class="t-center">重なり検知対象を選択</h2><br>
+            <hr><br>
+            <div id="checkboxes-group" class="flex">
+                <div>
+                    <input id="an" class="select-all" type="checkbox" checked><label for="an">[タップ系ノーツ]</label><br>
+                    <br>
+                    <input id="nn" name="an" class="select-btn" type="checkbox" checked><label for="nn">タップノーツ</label><br>
+                    <input id="nf" name="an" class="select-btn" type="checkbox" checked><label for="nf">フリックノーツ</label><br>
+                    <input id="nt" name="an" class="select-btn" type="checkbox" checked><label for="nt">トレースノーツ</label><br>
+                    <input id="ns" name="an" class="select-btn" type="checkbox" checked><label for="ns">トレースフリックノーツ</label><br>
+                    <input id="nd" name="an" class="select-btn" type="checkbox" checked><label for="nd">ダメージノーツ</label><br>
+                </div>
+                <div>
+                    <input id="as" class="select-all" type="checkbox" checked><label for="as">[スライド始点ノーツ]</label><br>
+                    <br>
+                    <input id="sn" name="as" class="select-btn" type="checkbox" checked><label for="sn">スライド通常始点ノーツ</label><br>
+                    <input id="st" name="as" class="select-btn" type="checkbox" checked><label for="st">スライド始点トレースノーツ</label><br>
+                    <input id="sx" name="as" class="select-btn" type="checkbox"><label for="sx">スライド始点なし</label><br>
+                </div>
+                <div>
+                    <input id="ae" class="select-all" type="checkbox" checked><label for="ae">[スライド終点ノーツ]</label><br>
+                    <br>
+                    <input id="en" name="ae" class="select-btn" type="checkbox" checked><label for="en">スライド通常終点ノーツ</label><br>
+                    <input id="ef" name="ae" class="select-btn" type="checkbox" checked><label for="ef">スライド終点フリックノーツ</label><br>
+                    <input id="et" name="ae" class="select-btn" type="checkbox" checked><label for="et">スライド終点トレースノーツ</label><br>
+                    <input id="ex" name="ae" class="select-btn" type="checkbox"><label for="ex">スライド終点なし</label><br>
+                </div>
+                <div>
+                    <input id="at" class="select-all" type="checkbox"><label for="at">[スライド中継点]</label><br>
+                    <br>
+                    <input id="tv" name="at" class="select-btn" type="checkbox"><label for="tv">スライド可視中継点</label><br>
+                    <input id="tu" name="at" class="select-btn" type="checkbox"><label for="tu">スライド不可視中継点</label><br>
+                    <input id="ta" name="at" class="select-btn" type="checkbox"><label for="ta">スライド無視中継点</label><br>
+                    <br>
+                    <input id="gm" type="checkbox"><label for="gm">ガイド始点/中継点/終点</label><br>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
