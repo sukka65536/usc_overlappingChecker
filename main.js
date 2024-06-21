@@ -1,5 +1,8 @@
 $(function () {
 
+    console.log('ひづけ：2024/06/21');
+    console.log('こーど：https://github.com/sukka65536/usc_overlappingChecker');
+
     let uscInput;
 
     //ファイルボタンが押されたら本来のinputを発火
