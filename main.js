@@ -27,7 +27,7 @@ $(function () {
             $('#file-input-error').text('');
             $('#download, #check-btn').addClass('can-click');
         }
-        //uscでなければ警告文を表示
+        //uscでなければ怒る
         else {
             $('#file-input-error').text('uscファイルを選択してください');
             $('#download, #check-btn').removeClass('can-click');
