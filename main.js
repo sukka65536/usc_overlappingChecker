@@ -17,7 +17,7 @@ $(function () {
         if (files.length === 0) return;
 
         //拡張子がuscならuscInputにuscを格納
-        if (isUsc(files[0].name)) {
+        if (isUsc(files[0])) {
             const reader = new FileReader();
             reader.readAsText(files[0]);
             reader.onload = () => {
@@ -81,9 +81,9 @@ const ids = ['nn', 'nf', 'nt', 'ns', 'nd', 'sn', 'st', 'sx', 'en', 'ef', 'et', '
 
 //各チェックボックスのチェック状況を確認、配列化
 function readConfig() {
-    let bools = [];
-    for (i = 0; i < ids.length; i++) bools[i] = $('#' + ids[i]).prop('checked');
-    return bools;
+    let res = [];
+    for (i = 0; i < ids.length; i++) res[i] = $('#' + ids[i]).prop('checked');
+    return res;
 }
 
 //メイン
@@ -156,8 +156,8 @@ function readUsc(data, targets) {
 }
 
 //uscかどうかを判定
-function isUsc(name) {
-    const res = (name.substr(-4) === '.usc') ? true : false;
+function isUsc(file) {
+    const res = (file.name.substr(-4) === '.usc') ? true : false;
     return res;
 }
 
