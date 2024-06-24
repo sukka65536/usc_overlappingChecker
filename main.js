@@ -2,6 +2,9 @@ $(function () {
 
     console.log('ひづけ：2024/06/24');
     console.log('こーど：https://github.com/sukka65536/usc_overlappingChecker');
+    console.log('りんく：'
+        + '\n    すっかぁ自作ツール ：https://sukka65536.github.io/usc_tools/'
+        + '\n    usc重なりチェッカー：https://sukka65536.github.io/usc_overlappingChecker/');
 
     let uscInput;
 
@@ -155,7 +158,7 @@ function readUsc(data, targets) {
 //uscかどうかを判定
 function isUsc(name) {
     const res = (name.substr(-4) === '.usc') ? true : false;
-    return res; 
+    return res;
 }
 
 //フリックかどうかを判定
