@@ -1,6 +1,6 @@
 $(function () {
 
-    console.log('ひづけ：2024/06/21');
+    console.log('ひづけ：2024/06/24');
     console.log('こーど：https://github.com/sukka65536/usc_overlappingChecker');
 
     let uscInput;
@@ -14,13 +14,13 @@ $(function () {
         if (files.length === 0) return;
 
         //拡張子がuscならuscInputにuscを格納
-        if (files[0].name.substr(-4) === '.usc') {
+        if (isUsc(files[0].name)) {
             const reader = new FileReader();
+            reader.readAsText(files[0]);
             reader.onload = () => {
                 uscInput = JSON.parse(reader.result);
                 console.log(JSON.parse(reader.result));
             };
-            reader.readAsText(files[0]);
             $('#file-input-error').text('');
             $('#download, #check-btn').addClass('can-click');
         }
@@ -31,10 +31,7 @@ $(function () {
         }
 
         //ファイル名とファイルサイズを表示
-        let fileSize = files[0].size, sizeUnit = 'B';
-        if (fileSize >= 1048576) { fileSize = Math.round(fileSize / (2 ** 20) * 100) / 100, sizeUnit = 'MB'; }
-        else if (fileSize >= 1024) { fileSize = Math.round(fileSize / (2 ** 10) * 100) / 100, sizeUnit = 'KB'; }
-        $('#file-info').text(files[0].name + ' ( ' + fileSize + ' ' + sizeUnit + ' )');
+        $('#file-info').text(files[0].name + ' ( ' + calcFileSize(files[0].size) + ' )');
     });
 
     //チェック実行ボタンが押されたらusc分解処理を開始
@@ -76,8 +73,10 @@ $(function () {
     */
 });
 
+//各チェックボックスのid
 const ids = ['nn', 'nf', 'nt', 'ns', 'nd', 'sn', 'st', 'sx', 'en', 'ef', 'et', 'ex', 'tv', 'tu', 'ta', 'gm'];
 
+//各チェックボックスのチェック状況を確認、配列化
 function readConfig() {
     let bools = [];
     for (i = 0; i < ids.length; i++) bools[i] = $('#' + ids[i]).prop('checked');
@@ -153,18 +152,25 @@ function readUsc(data, targets) {
     return res;
 }
 
-function isFlick(direction) {
-    if (direction == 'left' || direction == 'up' || direction == 'right') {
-        return true;
-    } else {
-        return false;
-    }
+//uscかどうかを判定
+function isUsc(name) {
+    const res = (name.substr(-4) === '.usc') ? true : false;
+    return res; 
 }
 
+//フリックかどうかを判定
+function isFlick(drc) {
+    const res = (drc == 'left' || drc == 'up' || drc == 'right') ? true : false;
+    return res;
+}
+
+//検出対象のノーツをresに追加
 function addNote(res, beat, lane, size, type) {
     let index = 0;
     const note = {
         beat: beat,
+        lane: lane,
+        size: size,
         minLane: lane - size,
         maxLane: lane + size,
         type: type
@@ -179,6 +185,7 @@ function addNote(res, beat, lane, size, type) {
     res.notes.splice(index, 0, note);
 }
 
+//ノーツの重複を検出
 function checkOverlapping(data) {
     let res = [];
     for (i = 0; i < data.notes.length - 1; i++) {
@@ -190,6 +197,7 @@ function checkOverlapping(data) {
     return res;
 }
 
+//結果を出力
 function printCheckerResult(data) {
     $('#result-table').html('');
     if (data.length > 0) {
@@ -205,4 +213,17 @@ function printCheckerResult(data) {
     }
 }
 
+//数値を任意の桁で四捨五入(数値, 桁数)
 function roundNum(val, dig) { return Math.round(val * (10 ** dig)) / (10 ** dig); }
+
+//ファイルサイズを適切な単位に変換
+function calcFileSize(size) {
+    let units = ['B', 'KB', 'MB', 'GB', 'TB'], unit = 0;
+    while (size >= 1024) {
+        size /= 1024;
+        unit++;
+        if (unit == 4) break;
+    }
+    const res = roundNum(size, 2) + ' ' + units[unit];
+    return res;
+}
