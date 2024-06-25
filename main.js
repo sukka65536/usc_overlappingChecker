@@ -146,6 +146,14 @@ function readUsc(data, targets) {
                 }
                 break;
 
+            //ガイドノーツ
+            case 'guide':
+                for (j = 0; j < obj.midpoints.length; j++) {
+                    const mdp = obj.midpoints[j];
+                    if (targets[15]) addNote(res, mdp.beat, mdp.lane, mdp.size, ids[15]);
+                }
+                break;
+
             default:
                 break;
         }
@@ -157,7 +165,7 @@ function readUsc(data, targets) {
 function isUsc(file) { return (file.name.substr(-4) == '.usc'); }
 
 //フリックかどうかを判定
-function isFlick(drc) { return (drc == 'left' || drc == 'up' || drc == 'right') }
+function isFlick(drc) { return (drc == 'left' || drc == 'up' || drc == 'right'); }
 
 //検出対象のノーツをresに追加
 function addNote(res, beat, lane, size, type) {
