@@ -42,9 +42,7 @@ $(function () {
         if ($(this).hasClass('can-click')) {
             const detectionTargets = readConfig();
             const readerResult = readUsc(uscInput, detectionTargets);
-            console.log(readerResult);
             const checkerResult = checkOverlapping(readerResult);
-            console.log(checkerResult);
             printCheckerResult(checkerResult);
         }
     });
@@ -156,16 +154,10 @@ function readUsc(data, targets) {
 }
 
 //uscかどうかを判定
-function isUsc(file) {
-    const res = (file.name.substr(-4) === '.usc') ? true : false;
-    return res;
-}
+function isUsc(file) { return (file.name.substr(-4) == '.usc'); }
 
 //フリックかどうかを判定
-function isFlick(drc) {
-    const res = (drc == 'left' || drc == 'up' || drc == 'right') ? true : false;
-    return res;
-}
+function isFlick(drc) { return (drc == 'left' || drc == 'up' || drc == 'right') }
 
 //検出対象のノーツをresに追加
 function addNote(res, beat, lane, size, type) {
