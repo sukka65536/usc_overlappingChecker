@@ -1,6 +1,6 @@
 $(function () {
 
-    console.log('ひづけ：2024/06/24');
+    console.log('ひづけ：2024/07/06');
     console.log('こーど：https://github.com/sukka65536/usc_overlappingChecker');
     console.log('りんく：'
         + '\n    すっかぁ自作ツール ：https://sukka65536.github.io/usc_tools/'
@@ -42,8 +42,10 @@ $(function () {
         if ($(this).hasClass('can-click')) {
             const detectionTargets = readConfig();
             const readerResult = readUsc(uscInput, detectionTargets);
-            const checkerResult = checkOverlapping(readerResult);
-            printCheckerResult(checkerResult);
+            const OLcheckerResult = checkOverlapping(readerResult);
+            const ALcheckerResult = checkAlignment(uscInput, detectionTargets);
+            console.log(ALcheckerResult);
+            printCheckerResult(OLcheckerResult, ALcheckerResult);
         }
     });
 
@@ -201,21 +203,30 @@ function checkOverlapping(data) {
 }
 
 //結果を出力
-function printCheckerResult(data) {
-    $('#result-table').html('');
+function printCheckerResult(data, data2) {
+    $('.result-table').html('');
     if (data.length > 0) {
-        $('#result-text').text(data.length + '件検出しました。');
-        $('#result-table').append('<tr><th>beat値</th><th>ノーツ種別</th></tr>');
+        $('#result-text-0').text('ノーツの重なりを'+ data.length + '件検出しました。');
+        $('#result-table-0').append('<tr><th>beat値</th><th>ノーツ種別</th></tr>');
         for (i = 0; i < data.length; i++) {
-            $('#result-table').append('<tr><td class="w-30c t-center">' + data[i][0] + '</td><td class="w-70c">'
+            $('#result-table-0').append('<tr><td class="w-30c t-center">' + data[i][0] + '</td><td class="w-70c">'
                 + $('label[for="' + data[i][1] + '"]').text() + '<br>'
                 + $('label[for="' + data[i][2] + '"]').text() + '</td></tr>');
         }
     } else {
-        $('#result-text').text('ノーツの重なりは検出されませんでした。');
+        $('#result-text-0').text('ノーツの重なりは検出されませんでした。');
+    }
+    if (data2.notes.length > 0) {
+        $('#result-text-1').text('ノーツのズレを'+ data2.notes.length + '件検出しました。');
+        $('#result-table-1').append('<tr><th>beat値</th><th>ノーツ種別</th></tr>');
+        for (i = 0; i < data2.notes.length; i++) {
+            $('#result-table-1').append('<tr><td class="w-30c t-center">' + roundNum(data2.notes[i].beat, 5) + '</td><td class="w-70c">'
+                + $('label[for="' + data2.notes[i].type + '"]').text() + '</td></tr>');
+        }
+    } else {
+        $('#result-text-1').text('ノーツのズレは検出されませんでした。');
     }
 }
-
 //数値を任意の桁で四捨五入(数値, 桁数)
 function roundNum(val, dig) { return Math.round(val * (10 ** dig)) / (10 ** dig); }
 
@@ -229,4 +240,103 @@ function calcFileSize(size) {
     }
     const res = roundNum(size, 2) + ' ' + units[unit];
     return res;
+}
+
+function judge1920(beat) {
+    const res = !(roundNum(beat * 384, 2) % 1 == 0);
+    return res;
+}
+
+function checkAlignment(data, targets) {
+    let res = { notes: [] };
+    for (i = 0; i < data.usc.objects.length; i++) {
+        const obj = data.usc.objects[i];
+        const objx = judge1920(obj.beat);
+
+        switch (obj.type) {
+
+            //タップノーツ・フリックノーツとそのトレース
+            case 'single':
+                for (j = 0; j < 4; j++) {
+                    const trace = (j < 2) ? !obj.trace : obj.trace;
+                    const flick = (j % 2 == 0) ? !isFlick(obj.direction) : isFlick(obj.direction);
+                    if (targets[j] && trace && flick && objx) addNote2(res, obj.beat, ids[j]);
+                }
+                break;
+
+            //ダメージノーツ
+            case 'damage':
+                if (targets[4] && objx) addNote2(res, obj.beat, ids[4]);
+                break;
+
+            //スライドノーツ
+            case 'slide':
+                for (j = 0; j < obj.connections.length; j++) {
+                    const cnc = obj.connections[j];
+                    const cncx = judge1920(cnc.beat);
+
+                    switch (cnc.type) {
+
+                        //始点
+                        case 'start':
+                            if (targets[5] && cnc.judgeType == 'normal' && cncx) addNote2(res, cnc.beat, ids[5]);
+                            if (targets[6] && cnc.judgeType == 'trace' && cncx) addNote2(res, cnc.beat, ids[6]);
+                            if (targets[7] && cnc.judgeType == 'none' && cncx) addNote2(res, cnc.beat, ids[7]);
+                            break;
+
+                        //終点
+                        case 'end':
+                            if (cnc.judgeType == 'normal') {
+                                if (targets[8] && !isFlick(cnc.direction) && cncx) addNote2(res, cnc.beat, ids[8]);
+                                if (targets[9] && isFlick(cnc.direction) && cncx) addNote2(res, cnc.beat, ids[9]);
+                            }
+                            if (targets[10] && cnc.judgeType == 'trace' && cncx) addNote2(res, cnc.beat, ids[10]);
+                            if (targets[11] && cnc.judgeType == 'none' && cncx) addNote2(res, cnc.beat, ids[11]);
+                            break;
+
+                        //可視中継点・不可視中継点
+                        case 'tick':
+                            if (targets[12] && !cnc.critical && cncx) addNote2(res, cnc.beat, ids[12]);
+                            if (targets[13] && cnc.critical == undefined && cncx) addNote2(res, cnc.beat, ids[13]);
+                            break;
+
+                        //無視中継点
+                        case 'attach':
+                            if (targets[14] && cncx) addNote2(res, cnc.beat, ids[14]);
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+                break;
+
+            //ガイドノーツ
+            case 'guide':
+                for (j = 0; j < obj.midpoints.length; j++) {
+                    const mdp = obj.midpoints[j];
+                    const mdpx = judge1920(mdp.beat);
+
+                    if (targets[15] && mdpx) addNote2(res, mdp.beat, ids[15]);
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+    return res;
+}
+
+function addNote2(res, beat, type) {
+    let index = 0;
+    const note = {
+        beat: beat,
+        type: type
+    }
+    for (k = 0; k < res.notes.length; k++) {
+        if (note.beat < res.notes[k].beat) break;
+        index++;
+    }
+    res.notes.splice(index, 0, note);
 }
