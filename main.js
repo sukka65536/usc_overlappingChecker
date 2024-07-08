@@ -1,12 +1,12 @@
 $(function () {
 
-    console.log('ひづけ：2024/07/06');
+    console.log('ひづけ：2024/07/08');
     console.log('こーど：https://github.com/sukka65536/usc_overlappingChecker');
     console.log('りんく：'
         + '\n    すっかぁ自作ツール ：https://sukka65536.github.io/usc_tools/'
         + '\n    usc重なりチェッカー：https://sukka65536.github.io/usc_overlappingChecker/');
 
-    let uscInput;
+    let inputUSC;
 
     //ファイルボタンが押されたら本来のinputを発火
     $('#file-input').on('click', function () { $('#file-input-hide').trigger('click'); });
@@ -16,12 +16,12 @@ $(function () {
         const files = e.target.files;
         if (files.length === 0) return;
 
-        //拡張子がuscならuscInputにuscを格納
+        //拡張子がuscならinputUSCにuscを格納
         if (isUsc(files[0])) {
             const reader = new FileReader();
             reader.readAsText(files[0]);
             reader.onload = () => {
-                uscInput = JSON.parse(reader.result);
+                inputUSC = JSON.parse(reader.result);
                 console.log(JSON.parse(reader.result));
             };
             $('#file-input-error').text('');
@@ -41,10 +41,13 @@ $(function () {
     $('#check-btn').on('click', function () {
         if ($(this).hasClass('can-click')) {
             const detectionTargets = readConfig();
-            const readerResult = readUsc(uscInput, detectionTargets);
+            const filteredUSC = filterUSC(inputUSC, detectionTargets);
+            //console.log(filteredUSC);
+            const readerResult = readUSC(filteredUSC);
             const OLcheckerResult = checkOverlapping(readerResult);
-            const ALcheckerResult = checkAlignment(uscInput, detectionTargets);
-            console.log(ALcheckerResult);
+            //console.log(OLcheckerResult);
+            const ALcheckerResult = checkAlignment(readerResult);
+            //console.log(ALcheckerResult);
             printCheckerResult(OLcheckerResult, ALcheckerResult);
         }
     });
@@ -58,7 +61,7 @@ $(function () {
     $('.select-btn').on('click', function () {
         const elem = $('.select-btn[name="' + $(this).attr('name') + '"]');
         let bool = false;
-        for (i = 0; i < elem.length; i++) if (elem.eq(i).prop('checked')) bool = true;
+        for (let i = 0; i < elem.length; i++) if (elem.eq(i).prop('checked')) bool = true;
         $('#' + $(this).attr('name')).prop('checked', bool);
     });
 
@@ -82,82 +85,92 @@ const ids = ['nn', 'nf', 'nt', 'ns', 'nd', 'sn', 'st', 'sx', 'en', 'ef', 'et', '
 //各チェックボックスのチェック状況を確認、配列化
 function readConfig() {
     let res = [];
-    for (i = 0; i < ids.length; i++) res[i] = $('#' + ids[i]).prop('checked');
+    for (let i = 0; i < ids.length; i++) res[i] = $('#' + ids[i]).prop('checked');
     return res;
 }
 
-//メイン
-function readUsc(data, targets) {
-    let res = { notes: [] };
-    for (i = 0; i < data.usc.objects.length; i++) {
+function filterUSC(data, targets) {
+    let res = { objects: [] }
+    for (let i = 0; i < data.usc.objects.length; i++) {
         const obj = data.usc.objects[i];
 
-        switch (obj.type) {
+        //タップノーツ
+        if (targets[0] && obj.type == 'single' && !obj.trace && !isFlick(obj.direction)) addObj(res, obj, 0);
 
-            //タップノーツ・フリックノーツとそのトレース
-            case 'single':
-                for (j = 0; j < 4; j++) {
-                    const trace = (j < 2) ? !obj.trace : obj.trace;
-                    const flick = (j % 2 == 0) ? !isFlick(obj.direction) : isFlick(obj.direction);
-                    if (targets[j] && trace && flick) addNote(res, obj.beat, obj.lane, obj.size, ids[j]);
-                }
-                break;
+        //フリックノーツ
+        if (targets[1] && obj.type == 'single' && !obj.trace && isFlick(obj.direction)) addObj(res, obj, 1);
 
-            //ダメージノーツ
-            case 'damage':
-                if (targets[4]) addNote(res, obj.beat, obj.lane, obj.size, ids[4]);
-                break;
+        //トレースノーツ
+        if (targets[2] && obj.type == 'single' && obj.trace && !isFlick(obj.direction)) addObj(res, obj, 2);
 
-            //スライドノーツ
-            case 'slide':
-                for (j = 0; j < obj.connections.length; j++) {
-                    const cnc = obj.connections[j];
-                    switch (cnc.type) {
+        //トレースフリックノーツ
+        if (targets[3] && obj.type == 'single' && obj.trace && isFlick(obj.direction)) addObj(res, obj, 3);
 
-                        //始点
-                        case 'start':
-                            if (targets[5] && cnc.judgeType == 'normal') addNote(res, cnc.beat, cnc.lane, cnc.size, ids[5]);
-                            if (targets[6] && cnc.judgeType == 'trace') addNote(res, cnc.beat, cnc.lane, cnc.size, ids[6]);
-                            if (targets[7] && cnc.judgeType == 'none') addNote(res, cnc.beat, cnc.lane, cnc.size, ids[7]);
-                            break;
+        //ダメージノーツ
+        if (targets[4] && obj.type == 'damage') addObj(res, obj, 4);
 
-                        //終点
-                        case 'end':
-                            if (cnc.judgeType == 'normal') {
-                                if (targets[8] && !isFlick(cnc.direction)) addNote(res, cnc.beat, cnc.lane, cnc.size, ids[8]);
-                                if (targets[9] && isFlick(cnc.direction)) addNote(res, cnc.beat, cnc.lane, cnc.size, ids[9]);
-                            }
-                            if (targets[10] && cnc.judgeType == 'trace') addNote(res, cnc.beat, cnc.lane, cnc.size, ids[10]);
-                            if (targets[11] && cnc.judgeType == 'none') addNote(res, cnc.beat, cnc.lane, cnc.size, ids[11]);
-                            break;
+        //スライドノーツ
+        if (obj.type == 'slide') {
+            for (let j = 0; j < obj.connections.length; j++) {
+                const cnc = obj.connections[j];
 
-                        //可視中継点・不可視中継点
-                        case 'tick':
-                            if (targets[12] && !cnc.critical) addNote(res, cnc.beat, cnc.lane, cnc.size, ids[12]);
-                            if (targets[13] && cnc.critical == undefined) addNote(res, cnc.beat, cnc.lane, cnc.size, ids[13]);
-                            break;
+                //スライド通常始点ノーツ
+                if (targets[5] && cnc.type == 'start' && cnc.judgeType == 'normal') addObj(res, cnc, 5);
 
-                        //無視中継点
-                        case 'attach':
-                            if (targets[14]) addNote(res, cnc.beat, cnc.lane, cnc.size, ids[14]);
-                            break;
+                //スライド始点トレースノーツ
+                if (targets[6] && cnc.type == 'start' && cnc.judgeType == 'trace') addObj(res, cnc, 6);
 
-                        default:
-                            break;
-                    }
-                }
-                break;
+                //スライド始点なし
+                if (targets[7] && cnc.type == 'start' && cnc.judgeType == 'none') addObj(res, cnc, 7);
 
-            //ガイドノーツ
-            case 'guide':
-                for (j = 0; j < obj.midpoints.length; j++) {
-                    const mdp = obj.midpoints[j];
-                    if (targets[15]) addNote(res, mdp.beat, mdp.lane, mdp.size, ids[15]);
-                }
-                break;
+                //スライド通常終点ノーツ
+                if (targets[8] && cnc.type == 'end' && cnc.judgeType == 'normal' && !isFlick(cnc.direction)) addObj(res, cnc, 8);
 
-            default:
-                break;
+                //スライド終点フリックノーツ
+                if (targets[9] && cnc.type == 'end' && cnc.judgeType == 'normal' && isFlick(cnc.direction)) addObj(res, cnc, 9);
+
+                //スライド終点トレースノーツ
+                if (targets[10] && cnc.type == 'end' && cnc.judgeType == 'trace') addObj(res, cnc, 10);
+
+                //スライド終点なし
+                if (targets[11] && cnc.type == 'end' && cnc.judgeType == 'none') addObj(res, cnc, 11);
+
+                //スライド可視中継点
+                if (targets[12] && cnc.type == 'tick' && !cnc.critical) addObj(res, cnc, 12);
+
+                //スライド不可視中継点
+                if (targets[13] && cnc.type == 'tick' && cnc.critical == undefined) addObj(res, cnc, 13);
+
+                //スライド無視中継点
+                if (targets[14] && cnc.type == 'attach') addObj(res, cnc, 14);
+            }
+        }
+
+        //ガイドノーツ
+        if (obj.type == 'guide') {
+            for (let j = 0; j < obj.midpoints.length; j++) {
+                const mdp = obj.midpoints[j];
+
+                //ガイド始点/中継点/終点
+                if (targets[15]) addObj(res, mdp, 15);
+            }
+        }
+    }
+    return res;
+}
+
+function addObj(res, obj, index) {
+    obj.id = ids[index];
+    res.objects.push(obj);
+}
+
+//メイン
+function readUSC(data) {
+    let res = { notes: [] }
+    for (let i = 0; i < data.objects.length; i++) {
+        const obj = data.objects[i];
+        for (let j = 0; j < ids.length; j++) {
+            if (obj.id == ids[j]) addNote(res, obj.beat, obj.lane, obj.size, ids[j]);
         }
     }
     return res;
@@ -193,7 +206,7 @@ function addNote(res, beat, lane, size, type) {
 //ノーツの重複を検出
 function checkOverlapping(data) {
     let res = [];
-    for (i = 0; i < data.notes.length - 1; i++) {
+    for (let i = 0; i < data.notes.length - 1; i++) {
         const note1 = data.notes[i], note2 = data.notes[i + 1];
         if ((note1.beat == note2.beat) && (note1.maxLane > note2.minLane)) {
             res.push([roundNum(note1.beat, 5), note1.type, note2.type]);
@@ -202,26 +215,38 @@ function checkOverlapping(data) {
     return res;
 }
 
+//ノーツのズレを検出
+function checkAlignment(data) {
+    let res = [];
+    for (let i = 0; i < data.notes.length; i++) {
+        const note = data.notes[i];
+        if (Math.round(note.beat * 480) % 5 != 0) {
+            res.push([roundNum(note.beat, 5), note.type])
+        }
+    }
+    return res;
+}
+
 //結果を出力
-function printCheckerResult(data, data2) {
+function printCheckerResult(OLdata, ALdata) {
     $('.result-table').html('');
-    if (data.length > 0) {
-        $('#result-text-0').text('ノーツの重なりを'+ data.length + '件検出しました。');
+    if (OLdata.length > 0) {
+        $('#result-text-0').text('ノーツの重なりを' + OLdata.length + '件検出しました。');
         $('#result-table-0').append('<tr><th>beat値</th><th>ノーツ種別</th></tr>');
-        for (i = 0; i < data.length; i++) {
-            $('#result-table-0').append('<tr><td class="w-30c t-center">' + data[i][0] + '</td><td class="w-70c">'
-                + $('label[for="' + data[i][1] + '"]').text() + '<br>'
-                + $('label[for="' + data[i][2] + '"]').text() + '</td></tr>');
+        for (let i = 0; i < OLdata.length; i++) {
+            $('#result-table-0').append('<tr><td class="w-30c t-center">' + OLdata[i][0] + '</td><td class="w-70c">'
+                + $('label[for="' + OLdata[i][1] + '"]').text() + '<br>'
+                + $('label[for="' + OLdata[i][2] + '"]').text() + '</td></tr>');
         }
     } else {
         $('#result-text-0').text('ノーツの重なりは検出されませんでした。');
     }
-    if (data2.notes.length > 0) {
-        $('#result-text-1').text('ノーツのズレを'+ data2.notes.length + '件検出しました。');
+    if (ALdata.length > 0) {
+        $('#result-text-1').text('ノーツのズレを' + ALdata.length + '件検出しました。');
         $('#result-table-1').append('<tr><th>beat値</th><th>ノーツ種別</th></tr>');
-        for (i = 0; i < data2.notes.length; i++) {
-            $('#result-table-1').append('<tr><td class="w-30c t-center">' + roundNum(data2.notes[i].beat, 5) + '</td><td class="w-70c">'
-                + $('label[for="' + data2.notes[i].type + '"]').text() + '</td></tr>');
+        for (let i = 0; i < ALdata.length; i++) {
+            $('#result-table-1').append('<tr><td class="w-30c t-center">' + roundNum(ALdata[i][0], 5) + '</td><td class="w-70c">'
+                + $('label[for="' + ALdata[i][1] + '"]').text() + '</td></tr>');
         }
     } else {
         $('#result-text-1').text('ノーツのズレは検出されませんでした。');
@@ -240,103 +265,4 @@ function calcFileSize(size) {
     }
     const res = roundNum(size, 2) + ' ' + units[unit];
     return res;
-}
-
-function judge1920(beat) {
-    const res = !(roundNum(beat * 384, 2) % 1 == 0);
-    return res;
-}
-
-function checkAlignment(data, targets) {
-    let res = { notes: [] };
-    for (i = 0; i < data.usc.objects.length; i++) {
-        const obj = data.usc.objects[i];
-        const objx = judge1920(obj.beat);
-
-        switch (obj.type) {
-
-            //タップノーツ・フリックノーツとそのトレース
-            case 'single':
-                for (j = 0; j < 4; j++) {
-                    const trace = (j < 2) ? !obj.trace : obj.trace;
-                    const flick = (j % 2 == 0) ? !isFlick(obj.direction) : isFlick(obj.direction);
-                    if (targets[j] && trace && flick && objx) addNote2(res, obj.beat, ids[j]);
-                }
-                break;
-
-            //ダメージノーツ
-            case 'damage':
-                if (targets[4] && objx) addNote2(res, obj.beat, ids[4]);
-                break;
-
-            //スライドノーツ
-            case 'slide':
-                for (j = 0; j < obj.connections.length; j++) {
-                    const cnc = obj.connections[j];
-                    const cncx = judge1920(cnc.beat);
-
-                    switch (cnc.type) {
-
-                        //始点
-                        case 'start':
-                            if (targets[5] && cnc.judgeType == 'normal' && cncx) addNote2(res, cnc.beat, ids[5]);
-                            if (targets[6] && cnc.judgeType == 'trace' && cncx) addNote2(res, cnc.beat, ids[6]);
-                            if (targets[7] && cnc.judgeType == 'none' && cncx) addNote2(res, cnc.beat, ids[7]);
-                            break;
-
-                        //終点
-                        case 'end':
-                            if (cnc.judgeType == 'normal') {
-                                if (targets[8] && !isFlick(cnc.direction) && cncx) addNote2(res, cnc.beat, ids[8]);
-                                if (targets[9] && isFlick(cnc.direction) && cncx) addNote2(res, cnc.beat, ids[9]);
-                            }
-                            if (targets[10] && cnc.judgeType == 'trace' && cncx) addNote2(res, cnc.beat, ids[10]);
-                            if (targets[11] && cnc.judgeType == 'none' && cncx) addNote2(res, cnc.beat, ids[11]);
-                            break;
-
-                        //可視中継点・不可視中継点
-                        case 'tick':
-                            if (targets[12] && !cnc.critical && cncx) addNote2(res, cnc.beat, ids[12]);
-                            if (targets[13] && cnc.critical == undefined && cncx) addNote2(res, cnc.beat, ids[13]);
-                            break;
-
-                        //無視中継点
-                        case 'attach':
-                            if (targets[14] && cncx) addNote2(res, cnc.beat, ids[14]);
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-                break;
-
-            //ガイドノーツ
-            case 'guide':
-                for (j = 0; j < obj.midpoints.length; j++) {
-                    const mdp = obj.midpoints[j];
-                    const mdpx = judge1920(mdp.beat);
-
-                    if (targets[15] && mdpx) addNote2(res, mdp.beat, ids[15]);
-                }
-                break;
-
-            default:
-                break;
-        }
-    }
-    return res;
-}
-
-function addNote2(res, beat, type) {
-    let index = 0;
-    const note = {
-        beat: beat,
-        type: type
-    }
-    for (k = 0; k < res.notes.length; k++) {
-        if (note.beat < res.notes[k].beat) break;
-        index++;
-    }
-    res.notes.splice(index, 0, note);
 }
