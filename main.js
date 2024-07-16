@@ -12,18 +12,16 @@ $(function () {
     $('#file-input').on('click', function () { $('#file-input-hide').trigger('click'); });
 
     //usc読み込み処理
-    $('#file-input-hide').on('change', function (e) {
+    $('#file-input-hide').on('change', async function (e) {
         const files = e.target.files;
         if (files.length === 0) return;
 
         //拡張子がuscならinputUSCにuscを格納
-        if (isUsc(files[0])) {
-            const reader = new FileReader();
-            reader.readAsText(files[0]);
-            reader.onload = () => {
-                inputUSC = JSON.parse(reader.result);
-                console.log(JSON.parse(reader.result));
-            };
+        if (isUSC(files[0])) {
+
+            inputUSC = await readUSC(files[0]);
+            console.log(inputUSC);
+
             $('#file-input-error').text('');
             $('#download, #check-btn').addClass('can-click');
         }
@@ -43,7 +41,7 @@ $(function () {
             const detectionTargets = readConfig();
             const filteredUSC = filterUSC(inputUSC, detectionTargets);
             //console.log(filteredUSC);
-            const readerResult = readUSC(filteredUSC);
+            const readerResult = expandUSC(filteredUSC);
             const OLcheckerResult = checkOverlapping(readerResult);
             //console.log(OLcheckerResult);
             const ALcheckerResult = checkAlignment(readerResult);
@@ -165,7 +163,7 @@ function addObj(res, obj, index) {
 }
 
 //メイン
-function readUSC(data) {
+function expandUSC(data) {
     let res = { notes: [] }
     for (let i = 0; i < data.objects.length; i++) {
         const obj = data.objects[i];
@@ -175,12 +173,6 @@ function readUSC(data) {
     }
     return res;
 }
-
-//uscかどうかを判定
-function isUsc(file) { return (file.name.substr(-4) == '.usc'); }
-
-//フリックかどうかを判定
-function isFlick(drc) { return (drc == 'left' || drc == 'up' || drc == 'right'); }
 
 //検出対象のノーツをresに追加
 function addNote(res, beat, lane, size, type) {
